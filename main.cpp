@@ -2,17 +2,26 @@
 #include "ray.h"
 
 double hit_sphere(const vec3& center, double radius, const ray& r) {
+    // ray-sphere intersection equation
     vec3 oc = r.origin() - center;
-    auto a = dot(r.direction(), r.direction());
-    auto b = 2.0 * dot(oc, r.direction());
-    auto c = dot(oc, oc) - radius * radius;
-    auto discriminant = b * b - 4 * a * c;
+
+    // vector `r` dotted with itself == squared length of vector `r`
+    auto a = r.direction().length_squared();
+
+    // setting `b` = `2h` in quadratic equation removes some scalar factors
+    auto half_b = dot(oc, r.direction());
+
+    // vector `c` dotted with itself == squared length of vector `c`
+    auto c = oc.length_squared() - radius * radius;
+
+    // quadratic discriminant based on `half_b` simplification above
+    auto discriminant = half_b * half_b - a * c;
 
     // check if discriminant is less than 0
     if (discriminant < 0) {
         return -1.0;
     } else {
-        return (-b - sqrt(discriminant)) / (2.0 * a);
+        return (-half_b - sqrt(discriminant)) / a;
     }
 }
 
