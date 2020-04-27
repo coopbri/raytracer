@@ -49,10 +49,11 @@ class vec3 {
 
     void write_color(std::ostream &out, int samples_per_pixel) {
         // divide color total by number of samples
+        //      and gamma-correct for `gamma = 2.0` (1/gamma = 1/2 = sqrt())
         auto scale = 1.0 / samples_per_pixel;
-        auto r = scale * e[0];
-        auto g = scale * e[1];
-        auto b = scale * e[2];
+        auto r = sqrt(scale * e[0]);
+        auto g = sqrt(scale * e[1]);
+        auto b = sqrt(scale * e[2]);
 
         // write translated [0,255] value of each color component
         out << static_cast<int>(256 * clamp(r, 0.0, 0.999)) << ' '
@@ -108,5 +109,25 @@ vec3 random_in_unit_sphere() {
         return p;
     }
 }
+
+// uniform scatter direction for all angles away from hit point
+vec3 random_in_hemisphere(const vec3& normal) {
+    vec3 in_unit_sphere = random_in_unit_sphere();
+
+    if (dot(in_unit_sphere, normal) >
+        0.0)  // In the same hemisphere as the normal
+        return in_unit_sphere;
+    else
+        return -in_unit_sphere;
+}
+
+// generate random unit vector for Lambertian
+vec3 random_unit_vector() {
+    auto a = random_double(0, 2 * pi);
+    auto z = random_double(-1, 1);
+    auto r = sqrt(1 - z * z);
+    return vec3(r * cos(a), r * sin(a), z);
+}
+
 
 #endif
