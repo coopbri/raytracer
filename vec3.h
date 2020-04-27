@@ -121,6 +121,15 @@ vec3 random_in_hemisphere(const vec3 &normal) {
         return -in_unit_sphere;
 }
 
+// generate random point inside unit disk
+vec3 random_in_unit_disk() {
+    while (true) {
+        auto p = vec3(random_double(-1, 1), random_double(-1, 1), 0);
+        if (p.length_squared() >= 1) continue;
+        return p;
+    }
+}
+
 // generate random unit vector for Lambertian
 vec3 random_unit_vector() {
     auto a = random_double(0, 2 * pi);
