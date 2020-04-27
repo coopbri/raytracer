@@ -1,41 +1,17 @@
 // #include <iostream>
-#include "ray.h"
-
-double hit_sphere(const vec3& center, double radius, const ray& r) {
-    // ray-sphere intersection equation
-    vec3 oc = r.origin() - center;
-
-    // vector `r` dotted with itself == squared length of vector `r`
-    auto a = r.direction().length_squared();
-
-    // setting `b` = `2h` in quadratic equation removes some scalar factors
-    auto half_b = dot(oc, r.direction());
-
-    // vector `c` dotted with itself == squared length of vector `c`
-    auto c = oc.length_squared() - radius * radius;
-
-    // quadratic discriminant based on `half_b` simplification above
-    auto discriminant = half_b * half_b - a * c;
-
-    // check if discriminant is less than 0
-    if (discriminant < 0) {
-        return -1.0;
-    } else {
-        return (-half_b - sqrt(discriminant)) / a;
-    }
-}
+#include "rtweekend.h"
+#include "hittable_list.h"
+#include "sphere.h"
 
 // determine color of ray
-vec3 ray_color(const ray& r) {
-    // color pixel red if sphere is hit
-    auto t = hit_sphere(vec3(0, 0, -1), 0.5, r);
-    if (t > 0.0) {
-        vec3 N = unit_vector(r.at(t) - vec3(0, 0, -1));
-        return 0.5 * vec3(N.x() + 1, N.y() + 1, N.z() + 1);
+vec3 ray_color(const ray& r, const hittable& world) {
+    hit_record rec;
+    if (world.hit(r, 0, infinity, rec)) {
+        return 0.5 * (rec.normal + vec3(1, 1, 1));
     }
 
     vec3 unit_direction = unit_vector(r.direction());
-    t = 0.5 * (unit_direction.y() + 1.0);
+    auto t = 0.5 * (unit_direction.y() + 1.0);
     return (1.0 - t) * vec3(1.0, 1.0, 1.0) + t * vec3(0.5, 0.7, 1.0);
 }
 
@@ -51,28 +27,20 @@ int main() {
     vec3 vertical(0.0, 2.0, 0.0);
     vec3 origin(0.0, 0.0, 0.0);
 
+    hittable_list world;
+    world.add(make_shared<sphere>(vec3(0, 0, -1), 0.5));
+    world.add(make_shared<sphere>(vec3(0, -100.5, -1), 100));
+
     // iterate over entire image row-by-row (left-to-right in row)
     for (int j = image_height - 1; j >= 0; --j) {
         std::cerr << "\rScanlines remaining: " << j << ' ' << std::flush;
         for (int i = 0; i < image_width; ++i) {
-            // // calculate RGB channels
-            // auto r = double(i) / image_width;
-            // auto g = double(j) / image_height;
-            // auto b = 0.2;
-
-            // // get intensities of RGB channels
-            // int ir = static_cast<int>(255.999 * r);
-            // int ig = static_cast<int>(255.999 * g);
-            // int ib = static_cast<int>(255.999 * b);
-            // std::cout << ir << ' ' << ig << ' ' << ib << '\n';
-
-            // initialize color vector
-            // vec3 color(double(i) / image_width, double(j) / image_height,
-            // 0.2);
             auto u = double(i) / image_width;
             auto v = double(j) / image_height;
             ray r(origin, lower_left_corner + u * horizontal + v * vertical);
-            vec3 color = ray_color(r);
+
+            vec3 color = ray_color(r, world);
+
             color.write_color(std::cout);
         }
     }
