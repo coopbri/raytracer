@@ -1,8 +1,10 @@
 #include <iostream>
-#include "rtweekend.h"
-#include "hittable_list.h"
-#include "sphere.h"
+
 #include "camera.h"
+#include "hittable_list.h"
+#include "rtweekend.h"
+#include "material.h"
+#include "sphere.h"
 
 // determine color of ray
 vec3 ray_color(const ray& r, const hittable& world, int depth) {
@@ -10,13 +12,21 @@ vec3 ray_color(const ray& r, const hittable& world, int depth) {
 
     // if ray bounce limit is exceeded, no more light is gathered
     //      this guards against blowing the stack with long recursion
-    if (depth <= 0) return vec3(0,0,0);
+    if (depth <= 0) return vec3(0, 0, 0);
 
     // 0.001 chosen for tolerance of floating point approximation
     if (world.hit(r, 0.001, infinity, rec)) {
-        // vec3 target = rec.p + rec.normal + random_in_hemisphere(rec.normal); // hemispherical
-        vec3 target = rec.p + rec.normal + random_unit_vector(); // Lambertian
-        return 0.5 * ray_color(ray(rec.p, target - rec.p), world, depth-1);
+        ray scattered;
+        vec3 attenuation;
+
+        if (rec.mat_ptr->scatter(r, rec, attenuation, scattered))
+            return attenuation * ray_color(scattered, world, depth - 1);
+        return vec3(0, 0, 0);
+
+        // vec3 target = rec.p + rec.normal + random_in_hemisphere(rec.normal);
+        // // hemispherical vec3 target = rec.p + rec.normal +
+        // random_unit_vector(); // Lambertian return 0.5 * ray_color(ray(rec.p,
+        // target - rec.p), world, depth-1);
     }
 
     vec3 unit_direction = unit_vector(r.direction());
@@ -39,8 +49,21 @@ int main() {
     vec3 origin(0.0, 0.0, 0.0);
 
     hittable_list world;
-    world.add(make_shared<sphere>(vec3(0, 0, -1), 0.5));
-    world.add(make_shared<sphere>(vec3(0, -100.5, -1), 100));
+    // world.add(make_shared<sphere>(vec3(0, 0, -1), 0.5));
+    // world.add(make_shared<sphere>(vec3(0, -100.5, -1), 100));
+
+    world.add(make_shared<sphere>(
+        vec3(0, 0, -1), 0.5, make_shared<lambertian>(vec3(0.7, 0.3, 0.3))));
+
+    world.add(
+        make_shared<sphere>(vec3(0, -100.5, -1), 100,
+                            make_shared<lambertian>(vec3(0.8, 0.8, 0.0))));
+
+    world.add(make_shared<sphere>(vec3(1, 0, -1), 0.5,
+                                  make_shared<metal>(vec3(0.8, 0.6, 0.2), 0.3)));
+    world.add(make_shared<sphere>(vec3(-1, 0, -1), 0.5,
+                                  make_shared<metal>(vec3(0.8, 0.8, 0.8), 1.0)));
+
     camera cam;
 
     // iterate over entire image row-by-row (left-to-right in row)
